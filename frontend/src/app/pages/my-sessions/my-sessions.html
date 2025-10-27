@@ -1,16 +1,20 @@
 <div class="my-sessions-root p-3">
   <div class="header-card card mb-4 p-3">
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex justify-content-between align-items-center mb-3">
       <div>
         <h3 class="mb-0">My Sessions</h3>
         <div class="small text-muted">{{ visibleSessions.length || 0 }} sessions</div>
       </div>
-      <div class="d-flex align-items-center">
-        <div *ngIf="currentUser?.isTutor" class="form-check form-switch me-3">
-          <input class="form-check-input" type="checkbox" role="switch" id="sessionsViewSwitch" [checked]="sessionsView==='tutor'" (change)="setSessionsView($event.target.checked ? 'tutor' : 'student')" />
-          <label class="form-check-label small ms-2" for="sessionsViewSwitch">View as tutor</label>
+    </div>
+    
+    <div class="d-flex flex-wrap align-items-center gap-3">
+      <div *ngIf="currentUser?.isTutor" class="view-buttons">
+        <div class="btn-group" role="group" aria-label="view mode">
+          <button class="btn btn-sm" [ngClass]="{'btn-outline-primary': sessionsView!=='student', 'btn-primary': sessionsView==='student'}" (click)="setSessionsView('student')">View as Student</button>
+          <button class="btn btn-sm" [ngClass]="{'btn-outline-primary': sessionsView!=='tutor', 'btn-primary': sessionsView==='tutor'}" (click)="setSessionsView('tutor')">View as Tutor</button>
         </div>
-        <div class="btn-group" role="group" aria-label="session filters">
+      </div>
+      <div class="btn-group" role="group" aria-label="session filters">
         <button class="btn btn-sm" [ngClass]="{'btn-outline-secondary': filter!=='all', 'btn-primary': filter==='all'}" (click)="setFilter('all')">All</button>
         <button class="btn btn-sm" [ngClass]="{'btn-outline-secondary': filter!=='upcoming', 'btn-primary': filter==='upcoming'}" (click)="setFilter('upcoming')">Upcoming</button>
         <button class="btn btn-sm" [ngClass]="{'btn-outline-secondary': filter!=='past', 'btn-primary': filter==='past'}" (click)="setFilter('past')">Past</button>
@@ -18,52 +22,49 @@
     </div>
   </div>
 
-  <div class="sessions-grid">
-    <div class="session-card card p-3 mb-3" *ngFor="let s of visibleSessions">
-      <div class="d-flex gap-3 align-items-start">
-  <div class="avatar rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">{{ getTutorInitials(s) }}</div>
-        <div class="flex-grow-1">
-          <div class="d-flex justify-content-between align-items-start">
-              <div>
-              <div class="fw-semibold text-dark">{{ s.subject }}</div>
-              <div class="small text-secondary">with <span class="fw-semibold">{{ sessionsView === 'tutor' ? (s.studentName || s.student?.fullName || (s.studentId? (s.studentId._id || s.studentId) : 'Student')) : (getTutorName(s)) }}</span></div>
-            </div>
-            <div class="text-end">
+  <div class="sessions-grid row g-3">
+    <div class="col-12 col-md-6 col-lg-4" *ngFor="let s of visibleSessions">
+      <div class="session-card card p-3 h-100">
+        <div class="d-flex align-items-start gap-3 mb-3">
+          <div class="avatar rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">{{ getTutorInitials(s) }}</div>
+          <div class="flex-grow-1">
+            <div class="fw-semibold text-dark mb-1">{{ s.subject }}</div>
+            <div class="small text-secondary mb-2">with <span class="fw-semibold">{{ sessionsView === 'tutor' ? (s.studentName || s.student?.fullName || (s.studentId? (s.studentId._id || s.studentId) : 'Student')) : (getTutorName(s)) }}</span></div>
+            <div class="d-flex align-items-center justify-content-between">
               <div class="small text-secondary">{{ s.scheduledAt | date:'short' }}</div>
-              <div class="mt-2">
-                <span class="badge status" [ngClass]="{
-                  'bg-warning text-dark': s.status === 'scheduled',
-                  'bg-success': s.status === 'completed',
-                  'bg-secondary': s.status === 'cancelled'
-                }">{{ s.status }}</span>
-              </div>
+              <span class="badge status" [ngClass]="{
+                'bg-warning text-dark': s.status === 'scheduled',
+                'bg-success': s.status === 'completed',
+                'bg-secondary': s.status === 'cancelled'
+              }">{{ s.status }}</span>
             </div>
           </div>
+        </div>
 
-          <div class="mt-3">
-            <div class="d-flex align-items-center gap-3">
-              <div class="small text-muted"><i class="bi bi-calendar-event"></i> {{ s.scheduledAt | date:'fullDate' }}</div>
-            </div>
-            <div class="d-flex align-items-center gap-3 mt-2">
-              <div class="small text-muted"><i class="bi bi-clock"></i> {{ formatTime(s) }}</div>
-              <div class="ms-auto">
-                <button class="btn btn-outline-primary btn-sm me-2" (click)="viewDetails(s)">Details</button>
-                <button class="btn btn-success btn-sm" *ngIf="(s.status === 'completed' || isSessionEnded(s)) && !currentUser?.isTutor && !s.hasFeedback" (click)="openFeedback(s)">Leave Feedback</button>
-                <span *ngIf="(s.status === 'completed' || isSessionEnded(s)) && !currentUser?.isTutor && s.hasFeedback" class="badge bg-light text-dark ms-2">You already rated</span>
-                <!-- Start (for tutors) or Join (for students) -->
-                <button *ngIf="isTutorForSession(s) && canStartSession(s) && s.status === 'scheduled'" class="btn btn-primary btn-sm ms-2" (click)="startSession(s)">
-                  <span *ngIf="startingSessionId !== s._id">Start Session</span>
-                  <span *ngIf="startingSessionId === s._id" class="spinner-border spinner-border-sm"></span>
-                </button>
-                <button *ngIf="!isTutorForSession(s) && (s.status === 'in-progress' || s.meetingUrl) && !isSessionEnded(s)" class="btn btn-outline-success btn-sm ms-2" (click)="joinSession(s)">Join Session</button>
-                <button *ngIf="(isTutorForSession(s) || !currentUser?.isTutor) && s.status === 'in-progress'" class="btn btn-sm btn-outline-secondary ms-2" (click)="markComplete(s)">Mark Complete</button>
-                <span *ngIf="isSessionEnded(s)" class="badge bg-secondary ms-2">Session ended</span>
-                <button *ngIf="!isTutorForSession(s) && isWaitingForTutor(s)" class="btn btn-outline-secondary btn-sm ms-2" disabled>Waiting for tutor</button>
-                <!-- Allow students to edit or delete their upcoming scheduled sessions -->
-                <button *ngIf="!isTutorForSession(s) && s.status === 'scheduled' && !isSessionEnded(s)" class="btn btn-outline-secondary btn-sm ms-2" (click)="openEdit(s)">Edit</button>
-                <button *ngIf="!isTutorForSession(s) && s.status === 'scheduled' && !isSessionEnded(s)" class="btn btn-outline-danger btn-sm ms-2" (click)="deleteSession(s)">Delete</button>
-              </div>
-            </div>
+        <div class="session-details mb-3">
+          <div class="small text-muted mb-2"><i class="bi bi-calendar-event me-1"></i> {{ s.scheduledAt | date:'fullDate' }}</div>
+          <div class="small text-muted"><i class="bi bi-clock me-1"></i> {{ formatTime(s) }}</div>
+        </div>
+
+        <div class="session-actions mt-auto">
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-outline-primary btn-sm" (click)="viewDetails(s)">Details</button>
+            <button class="btn btn-success btn-sm" *ngIf="(s.status === 'completed' || isSessionEnded(s)) && !currentUser?.isTutor && !s.hasFeedback" (click)="openFeedback(s)">Leave Feedback</button>
+            <span *ngIf="(s.status === 'completed' || isSessionEnded(s)) && !currentUser?.isTutor && s.hasFeedback" class="badge bg-light text-dark">You already rated</span>
+            
+            <!-- Start (for tutors) or Join (for students) -->
+            <button *ngIf="isTutorForSession(s) && canStartSession(s) && s.status === 'scheduled'" class="btn btn-primary btn-sm" (click)="startSession(s)">
+              <span *ngIf="startingSessionId !== s._id">Start Session</span>
+              <span *ngIf="startingSessionId === s._id" class="spinner-border spinner-border-sm"></span>
+            </button>
+            <button *ngIf="!isTutorForSession(s) && (s.status === 'in-progress' || s.meetingUrl) && !isSessionEnded(s)" class="btn btn-outline-success btn-sm" (click)="joinSession(s)">Join Session</button>
+            <button *ngIf="(isTutorForSession(s) || !currentUser?.isTutor) && s.status === 'in-progress'" class="btn btn-sm btn-outline-secondary" (click)="markComplete(s)">Mark Complete</button>
+            <span *ngIf="isSessionEnded(s)" class="badge bg-secondary">Session ended</span>
+            <button *ngIf="!isTutorForSession(s) && isWaitingForTutor(s)" class="btn btn-outline-secondary btn-sm" disabled>Waiting for tutor</button>
+            
+            <!-- Allow students to edit or delete their upcoming scheduled sessions -->
+            <button *ngIf="!isTutorForSession(s) && s.status === 'scheduled' && !isSessionEnded(s)" class="btn btn-outline-secondary btn-sm" (click)="openEdit(s)">Edit</button>
+            <button *ngIf="!isTutorForSession(s) && s.status === 'scheduled' && !isSessionEnded(s)" class="btn btn-outline-danger btn-sm" (click)="deleteSession(s)">Delete</button>
           </div>
         </div>
       </div>

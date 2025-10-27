@@ -1,4 +1,4 @@
-import { Component, inject, EventEmitter, Output } from '@angular/core';
+import { Component, inject, EventEmitter, Output, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -11,7 +11,7 @@ import { ApiService } from '../../services/api.service';
   templateUrl: './become-tutor.html',
   styleUrls: ['./become-tutor.css']
 })
-export class BecomeTutorPage {
+export class BecomeTutorPage implements OnInit {
   private api = inject(ApiService);
   private router = inject(Router);
 

@@ -1,38 +1,31 @@
-<div class="tutor-card card shadow-sm p-3 d-flex align-items-start gap-3">
-  <div class="avatar rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">{{ initial }}</div>
-  <div class="flex-grow-1">
-    <div class="d-flex justify-content-between align-items-start">
-      <div>
-      <div class="fw-semibold name">{{ (tutor?.user?.fullName || tutor?.user?.full_name || tutor?.profile?.full_name || tutor?.profile?.fullName || tutor?.profile?.name || tutor?.fullName || tutor?.name) || 'Unknown' }}</div>
-        <div class="small text-secondary">{{ tutor?.bio || tutor?.tutor?.bio || tutor?.user?.bio || 'No bio yet' }}</div>
-      </div>
-        <div class="text-end">
-            <div class="d-flex align-items-center justify-content-end gap-2">
-            <div class="small text-muted" *ngIf="displayRating !== null">
-              <span class="stars">
-                <span *ngFor="let s of starArray()" [class.filled]="displayRating >= s">★</span>
-              </span>
-              <span class="text-secondary ms-1">({{ displayRatingCount }})</span>
-            </div>
-            <div class="hourly-rate" *ngIf="displayHourlyRate">
-              <span class="badge bg-success">${{ displayHourlyRate }}/hr</span>
-            </div>
-          </div>
+<div class="tutor-card card shadow-sm p-3 h-100 d-flex flex-column">
+  <div class="d-flex align-items-start gap-3 mb-3">
+    <div class="avatar rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">{{ initial }}</div>
+    <div class="flex-grow-1">
+      <div class="fw-semibold name mb-1">{{ (tutor?.user?.fullName || tutor?.user?.full_name || tutor?.profile?.full_name || tutor?.profile?.fullName || tutor?.profile?.name || tutor?.fullName || tutor?.name) || 'Unknown' }}</div>
+      <div class="small text-secondary mb-2">{{ tutor?.bio || tutor?.tutor?.bio || tutor?.user?.bio || 'No bio yet' }}</div>
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <div class="small text-muted" *ngIf="displayRating !== null">
+          <span class="stars">
+            <span *ngFor="let s of starArray()" [class.filled]="displayRating >= s">★</span>
+          </span>
+          <span class="text-secondary ms-1">({{ displayRatingCount }})</span>
         </div>
-    </div>
-    <div class="mt-3">
-      <ng-container *ngFor="let s of (tutor?.subjects || tutor?.tutor?.subjects || subjects)">
-        <span class="badge-pill me-1">{{ s }}</span>
-      </ng-container>
-    </div>
-    <div class="mt-3 d-flex gap-2 align-items-center">
-      <div>
-        <button *ngIf="!isSelf" class="btn btn-primary me-2" (click)="onBook.emit(tutor)">Book Session</button>
-        <button *ngIf="isSelf" class="btn btn-secondary" disabled>It's you</button>
-      </div>
-      <div class="ms-auto d-flex gap-2">
-        <!-- Meeting actions are intentionally hidden on tutor card; meetings must be started from a booked session in My Sessions -->
+        <div class="hourly-rate" *ngIf="displayHourlyRate">
+          <span class="badge bg-success">${{ displayHourlyRate }}/hr</span>
+        </div>
       </div>
     </div>
+  </div>
+  
+  <div class="subjects-container mb-3">
+    <ng-container *ngFor="let s of (tutor?.subjects || tutor?.tutor?.subjects || subjects)">
+      <span class="badge-pill me-1 mb-1">{{ s }}</span>
+    </ng-container>
+  </div>
+  
+  <div class="mt-auto">
+    <button *ngIf="!isSelf" class="btn btn-primary w-100" (click)="onBook.emit(tutor)">Book Session</button>
+    <button *ngIf="isSelf" class="btn btn-secondary w-100" disabled>It's you</button>
   </div>
 </div>

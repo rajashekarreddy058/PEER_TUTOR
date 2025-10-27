@@ -67,12 +67,47 @@
   opacity: 1;
 }
 
+.overlay-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
 .upload-btn {
   color: white;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   text-align: center;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.upload-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.05);
+}
+
+.remove-btn {
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  padding: 8px 16px;
+  background: rgba(239, 68, 68, 0.8);
+  border-radius: 8px;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.remove-btn:hover {
+  background: rgba(239, 68, 68, 1);
+  transform: scale(1.05);
 }
 
 .profile-info {
@@ -111,9 +146,32 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
+.tutor-badge {
+  background: rgba(255, 193, 7, 0.2);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  color: #ffc107;
+}
+
 .join-date {
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.profile-picture-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.profile-picture-actions .btn {
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.profile-picture-actions .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .profile-body {

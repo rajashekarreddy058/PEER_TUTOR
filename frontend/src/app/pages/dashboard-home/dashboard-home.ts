@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StudentDashboard } from '../student-dashboard/student-dashboard';
 import { TutorDashboard } from '../tutor-dashboard/tutor-dashboard';
@@ -27,7 +27,7 @@ import { TutorsService } from '../../services/tutors.service';
     </ng-template>
   `
 })
-export class DashboardHome {
+export class DashboardHome implements OnInit {
   isTutor = false;
   // optimistic local flag: read localStorage so we can avoid flicker when user previously became a tutor
   hasTutorRole = this.localFlag();

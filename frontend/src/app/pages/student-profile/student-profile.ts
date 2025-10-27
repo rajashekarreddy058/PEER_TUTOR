@@ -79,8 +79,90 @@ export class StudentProfilePage implements OnInit {
       const reader = new FileReader();
       reader.onload = (e: any) => {
         this.previewUrl = e.target.result;
+        // Auto-save the profile picture when selected
+        this.saveProfilePicture();
       };
       reader.readAsDataURL(file);
+    }
+  }
+
+  removeProfilePicture() {
+    this.selectedFile = null;
+    this.previewUrl = null;
+    if (this.profile) {
+      this.profile.profilePicture = undefined;
+    }
+  }
+
+  triggerFileInput() {
+    const fileInput = document.getElementById('profile-picture-input-main') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  }
+
+  saveProfilePicture() {
+    if (!this.profile) return;
+
+    this.loading = true;
+    this.error = '';
+
+    // Upload profile picture if selected
+    if (this.selectedFile) {
+      const formData = new FormData();
+      formData.append('profilePicture', this.selectedFile);
+      
+      this.api.postFile(`/users/${this.profile.id}/profile-picture`, formData).subscribe({
+        next: (response: any) => {
+          if (this.profile) {
+            const updatedUser = { ...this.profile, profilePicture: response.profilePicture };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            this.profile = updatedUser;
+            this.previewUrl = null;
+            this.selectedFile = null;
+            this.loading = false;
+          }
+        },
+        error: (err: any) => {
+          // Fallback to base64 if file upload fails
+          const updateData = {
+            profilePicture: this.previewUrl || this.profile?.profilePicture
+          };
+
+          this.api.put(`/users/${this.profile?.id}`, updateData).subscribe({
+            next: (response: any) => {
+              const updatedUser = { ...this.profile, ...response };
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+              this.profile = updatedUser;
+              this.previewUrl = null;
+              this.selectedFile = null;
+              this.loading = false;
+            },
+            error: (err: any) => {
+              this.error = err?.error?.message || 'Failed to update profile picture';
+              this.loading = false;
+            }
+          });
+        }
+      });
+    } else {
+      // Just update the profile without uploading
+      const updateData = {
+        profilePicture: this.profile.profilePicture
+      };
+
+      this.api.put(`/users/${this.profile.id}`, updateData).subscribe({
+        next: (response: any) => {
+          const updatedUser = { ...this.profile, ...response };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          this.profile = updatedUser;
+          this.loading = false;
+        },
+        error: (err: any) => {
+          this.error = err?.error?.message || 'Failed to update profile picture';
+          this.loading = false;
+        }
+      });
     }
   }
 
@@ -107,7 +189,8 @@ export class StudentProfilePage implements OnInit {
       bio: this.editBio,
       grade: this.editGrade,
       educationalInstitute: this.editEducationalInstitute,
-      subjects: this.editSubjects
+      subjects: this.editSubjects,
+      profilePicture: this.previewUrl || this.profile.profilePicture
     };
 
     // Update profile data
