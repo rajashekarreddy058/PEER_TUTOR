@@ -57,7 +57,7 @@
               <span *ngIf="startingSessionId !== s._id">Start Session</span>
               <span *ngIf="startingSessionId === s._id" class="spinner-border spinner-border-sm"></span>
             </button>
-            <button *ngIf="!isTutorForSession(s) && (s.status === 'in-progress' || s.meetingUrl) && !isSessionEnded(s)" class="btn btn-outline-success btn-sm" (click)="joinSession(s)">Join Session</button>
+            <button *ngIf="!isTutorForSession(s) && (s.status === 'in-progress' || (s.meetingUrl && s.status !== 'completed' && s.status !== 'cancelled')) && !isSessionEnded(s)" class="btn btn-outline-success btn-sm" (click)="joinSession(s)">Join Session</button>
             <button *ngIf="(isTutorForSession(s) || !currentUser?.isTutor) && s.status === 'in-progress'" class="btn btn-sm btn-outline-secondary" (click)="markComplete(s)">Mark Complete</button>
             <span *ngIf="isSessionEnded(s)" class="badge bg-secondary">Session ended</span>
             <button *ngIf="!isTutorForSession(s) && isWaitingForTutor(s)" class="btn btn-outline-secondary btn-sm" disabled>Waiting for tutor</button>
@@ -176,7 +176,7 @@
       <div class="d-flex gap-2 justify-content-end">
             <button class="btn btn-outline-secondary" (click)="$event.stopPropagation(); selectedSession = null">Close</button>
         <button *ngIf="isTutorForSession(selectedSession) && canStartSession(selectedSession)" class="btn btn-primary" (click)="$event.stopPropagation(); startSession(selectedSession); selectedSession = null">Start Session</button>
-      <button *ngIf="!isTutorForSession(selectedSession) && (selectedSession.status === 'in-progress' || selectedSession.meetingUrl) && !isSessionEnded(selectedSession)" class="btn btn-success" (click)="$event.stopPropagation(); joinSession(selectedSession); selectedSession = null">Join Session</button>
+  <button *ngIf="!isTutorForSession(selectedSession) && (selectedSession.status === 'in-progress' || (selectedSession.meetingUrl && selectedSession.status !== 'completed' && selectedSession.status !== 'cancelled')) && !isSessionEnded(selectedSession)" class="btn btn-success" (click)="$event.stopPropagation(); joinSession(selectedSession); selectedSession = null">Join Session</button>
   <button *ngIf="!currentUser?.isTutor && (selectedSession.status === 'completed' || isSessionEnded(selectedSession)) && selectedSession.status !== 'cancelled' && selectedSession.status !== 'canceled'" class="btn btn-success" (click)="$event.stopPropagation(); openFeedback(selectedSession); selectedSession = null">Leave Feedback</button>
   <span *ngIf="isSessionEnded(selectedSession) && !(selectedSession.status === 'completed')" class="badge bg-secondary">Session ended</span>
         <button *ngIf="selectedSession.meetingUrl" class="btn btn-outline-primary" (click)="openExternal(selectedSession.meetingUrl)">Open in new tab</button>
