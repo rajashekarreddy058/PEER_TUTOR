@@ -1,9 +1,9 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm sticky-top">
+<nav class="navbar navbar-expand-lg navbar-light sticky-top">
   <div class="container">
     <a class="navbar-brand d-flex align-items-center gap-2" [routerLink]="'/dashboard'">
       <span class="brand-icon d-flex align-items-center justify-content-center">🎓</span>
       <div class="d-flex flex-column">
-        <div class="fw-semibold">Peer Tutoring</div>
+        <div class="fw-semibold">PeerTutor</div>
         <div class="small text-muted">Welcome, {{ fullName || 'guest' }}</div>
       </div>
     </a>
@@ -14,70 +14,23 @@
 
     <div class="collapse navbar-collapse" id="mainNav">
       <ul class="navbar-nav ms-auto align-items-center" *ngIf="isAuthed(); else guestLinks">
-        <li class="nav-item me-3"><a class="nav-link btn-link" [routerLink]="'/dashboard'">Dashboard</a></li>
-        <li class="nav-item me-3"><a class="nav-link" [routerLink]="'/find'">Find Tutors</a></li>
-        <li class="nav-item me-3"><a class="nav-link" [routerLink]="'/sessions'">My Sessions</a></li>
+        <li class="nav-item me-3"><a class="nav-link" [routerLink]="'/dashboard'" routerLinkActive="active">Dashboard</a></li>
+        <li class="nav-item me-3"><a class="nav-link" [routerLink]="'/find'" routerLinkActive="active">Find Tutors</a></li>
+        <li class="nav-item me-3"><a class="nav-link" [routerLink]="'/sessions'" routerLinkActive="active">My Sessions</a></li>
         <li class="nav-item me-3" *ngIf="!isTutor()">
           <button class="btn btn-success btn-sm px-3 py-2" (click)="openBecomeModal()">Become a Tutor</button>
         </li>
         <li class="nav-item me-2">
-          <div class="nav-notifications position-relative">
-            <a class="nav-link position-relative" href="#" title="Notifications" (click)="$event.preventDefault(); showNotifications = !showNotifications">
-              <i class="bi bi-bell" style="font-size:1.05rem"></i>
-              <span class="notification-badge" *ngIf="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
-            </a>
-            <div class="notifications-panel card shadow-sm" *ngIf="showNotifications">
-              <div class="p-2">
-                <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
-                  <div class="fw-semibold">Notifications</div>
-                  <div class="d-flex gap-2">
-                    <button class="btn btn-sm btn-outline-primary" (click)="markAllRead()">Mark all read</button>
-                    <button class="btn btn-sm btn-outline-secondary" (click)="showNotifications = false">×</button>
-                  </div>
-                </div>
-                <div class="notifications-list" style="max-height: 400px; overflow-y: auto;">
-                  <ng-container *ngIf="notifications?.length; else noNotifs">
-                    <div class="notif-item p-3 d-flex gap-3 align-items-start border-bottom" 
-                         *ngFor="let n of notifications" 
-                         [class.unread]="!n.read"
-                         [class.priority-high]="n.priority === 'high'"
-                         [class.priority-urgent]="n.priority === 'urgent'">
-                      <div class="notif-icon me-2">
-                        <i class="bi" [ngClass]="getNotificationIcon(n.type)"></i>
-                      </div>
-                      <div class="flex-grow-1">
-                        <div class="fw-medium">{{ n.title || n.type }}</div>
-                        <div class="small text-muted">{{ n.message || n.body }}</div>
-                        <div class="small text-muted mt-1">
-                          <span class="badge" [ngClass]="getPriorityClass(n.priority)">{{ n.priority }}</span>
-                          <span class="badge bg-secondary ms-1">{{ n.category }}</span>
-                        </div>
-                      </div>
-                      <div class="text-end small text-muted">
-                        <div>{{ formatTime(n.createdAt) }}</div>
-                        <div class="mt-1 d-flex gap-1">
-                          <button *ngIf="!n.read" class="btn btn-sm btn-outline-primary" (click)="markAsRead(n)">Read</button>
-                          <button *ngIf="n.data?.sessionId && (n.data?.joinToken || n.data?.meetingUrl)" class="btn btn-sm btn-primary" (click)="joinFromNotification(n)">Join</button>
-                          <button class="btn btn-sm btn-outline-danger" (click)="deleteNotification(n)">×</button>
-                        </div>
-                      </div>
-                    </div>
-                  </ng-container>
-                  <ng-template #noNotifs>
-                    <div class="text-center py-4 text-secondary">
-                      <i class="bi bi-bell" style="font-size:2rem"></i>
-                      <div class="mt-2 small">No notifications yet</div>
-                    </div>
-                  </ng-template>
-                </div>
-              </div>
-            </div>
-          </div>
+          <a class="nav-link position-relative" [routerLink]="'/notifications'" title="Notifications" routerLinkActive="active">
+            <i class="bi bi-bell" style="font-size:1.05rem"></i>
+            <span class="notification-badge" *ngIf="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+          </a>
         </li>
         <li class="nav-item">
-          <button class="btn btn-outline-secondary ms-2" (click)="signOut()" title="Sign out">
-            <i class="bi bi-box-arrow-right"></i>
-          </button>
+          <a class="nav-link" [routerLink]="'/profile'" routerLinkActive="active">
+            <i class="bi bi-person-circle me-1"></i>
+            Profile
+          </a>
         </li>
       </ul>
 

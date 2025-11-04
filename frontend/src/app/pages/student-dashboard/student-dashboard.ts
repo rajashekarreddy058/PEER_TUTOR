@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DashboardService } from '../../services/dashboard.service';
 
@@ -8,7 +8,7 @@ import { DashboardService } from '../../services/dashboard.service';
   templateUrl: './student-dashboard.html',
   styleUrls: ['./student-dashboard.css']
 })
-export class StudentDashboard {
+export class StudentDashboard implements OnInit {
   private dashboardService = inject(DashboardService);
   stats = {
     total: 0,

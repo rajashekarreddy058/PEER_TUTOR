@@ -17,10 +17,10 @@ export class AuthService {
     );
   }
 
-  signUp(email: string, password: string, fullName: string) {
+  signUp(email: string, password: string, firstName: string, surname: string) {
     // Perform signup then immediately sign in so the app receives and stores the
     // authentication token and user object. Caller will receive the signIn result.
-    return this.api.post('/auth/signup', { email, password, fullName }).pipe(
+    return this.api.post('/auth/signup', { email, password, firstName, surname }).pipe(
       switchMap(() => this.signIn(email, password))
     );
   }

@@ -1,9 +1,40 @@
-.tutor-card{ border-radius:12px; }
-.avatar{ width:56px; height:56px; border-radius:50%; font-weight:700; font-size:1.25rem; }
+.tutor-card{ 
+  border-radius:12px; 
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: 100%;
+}
+.tutor-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+.avatar{ 
+  width:48px; 
+  height:48px; 
+  border-radius:50%; 
+  font-weight:700; 
+  font-size:1.1rem; 
+  flex-shrink: 0;
+}
 .avatar.bg-primary{ background:linear-gradient(135deg,#2b8bf7,#3bb0ff); }
-.badge-pill{ display:inline-block; background:#eef6ff; color:#2563eb; padding:6px 10px; border-radius:999px; font-weight:600; }
-.tutor-card .btn-primary{ padding:10px 18px; border-radius:10px; }
+.badge-pill{ 
+  display:inline-block; 
+  background:#eef6ff; 
+  color:#2563eb; 
+  padding:4px 8px; 
+  border-radius:999px; 
+  font-weight:600; 
+  font-size: 0.75rem;
+}
+.tutor-card .btn-primary{ 
+  padding:8px 16px; 
+  border-radius:8px; 
+  font-size: 0.9rem;
+}
 .tutor-card .price{ font-weight:700; }
+.subjects-container {
+  flex-wrap: wrap;
+  display: flex;
+}
 /* stars */
-.tutor-card .stars { color: #ccc; }
+.tutor-card .stars { color: #ccc; font-size: 0.9rem; }
 .tutor-card .stars .filled { color: #ffb400; }

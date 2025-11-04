@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StudentDashboard } from '../student-dashboard/student-dashboard';
 import { TutorDashboard } from '../tutor-dashboard/tutor-dashboard';
@@ -11,11 +11,11 @@ import { TutorsService } from '../../services/tutors.service';
   template: `
     <div class="d-flex justify-content-end align-items-center mb-3" *ngIf="hasTutorRole">
       <div class="me-3">
-        <span class="small text-muted">{{ viewingLabel }}</span>
+        <span class="viewing-label">{{ viewingLabel }}</span>
       </div>
       <div class="btn-group" role="group" aria-label="dashboard view toggle">
-        <button type="button" class="btn btn-sm" [ngClass]="{ 'btn-primary': activeView==='student', 'btn-outline-secondary': activeView!=='student' }" (click)="setView('student')">Student view</button>
-        <button type="button" class="btn btn-sm" [ngClass]="{ 'btn-primary': activeView==='tutor', 'btn-outline-secondary': activeView!=='tutor' }" (click)="setView('tutor')">Tutor view</button>
+        <button type="button" class="btn btn-sm view-toggle-btn" [ngClass]="{ 'active': activeView==='student' }" (click)="setView('student')">Student view</button>
+        <button type="button" class="btn btn-sm view-toggle-btn" [ngClass]="{ 'active': activeView==='tutor' }" (click)="setView('tutor')">Tutor view</button>
       </div>
     </div>
 
@@ -27,7 +27,7 @@ import { TutorsService } from '../../services/tutors.service';
     </ng-template>
   `
 })
-export class DashboardHome {
+export class DashboardHome implements OnInit {
   isTutor = false;
   // optimistic local flag: read localStorage so we can avoid flicker when user previously became a tutor
   hasTutorRole = this.localFlag();

@@ -80,10 +80,16 @@ router.get('/tutor/:tutorId', async (req: Request, res: Response) => {
   try {
     const { tutorId } = req.params;
     const now = new Date();
+    console.log('[slots:tutor] fetching slots for tutorId:', tutorId, 'now:', now.toISOString());
     const slots = await Slot.find({ tutorId, startAt: { $gte: now }, status: 'available' }).sort({ startAt: 1 }).limit(200);
+    console.log('[slots:tutor] found', slots.length, 'available slots');
+    // Also log all slots for this tutor regardless of status for debugging
+    const allSlots = await Slot.find({ tutorId }).sort({ startAt: 1 }).limit(500);
+    console.log('[slots:tutor] total slots for this tutor (all statuses):', allSlots.length);
+    allSlots.slice(0, 3).forEach((s: any) => console.log('[slots:tutor] sample slot:', { startAt: s.startAt, status: s.status }));
     return res.json(slots);
   } catch (err) {
-    console.error(err);
+    console.error('[slots:tutor] error:', err);
     return res.status(500).json({ message: 'Server error' });
   }
 });
@@ -123,35 +129,60 @@ router.post('/:slotId/disable', requireAuth, async (req: AuthRequest, res: Respo
 
 // Student books a slot -> create a Session and mark slot as booked
 router.post('/:slotId/book', requireAuth, async (req: AuthRequest, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
     const uid = req.userId!;
+    console.log('[slots:book] Starting booking for user:', uid, 'slot:', req.params.slotId);
+    
     const user = await User.findById(uid);
-    if (!user) { await session.abortTransaction(); session.endSession(); return res.status(401).json({ message: 'Unauthorized' }); }
+    if (!user) { 
+      return res.status(401).json({ message: 'Unauthorized' }); 
+    }
+    
     const { slotId } = req.params;
-    const slot = await Slot.findById(slotId).session(session);
-    if (!slot) { await session.abortTransaction(); return res.status(404).json({ message: 'Slot not found' }); }
-    if (slot.status !== 'available') { await session.abortTransaction(); return res.status(409).json({ message: 'Slot not available' }); }
-    // mark slot booked
-  slot.status = 'booked';
-  // Cast user._id to ObjectId to satisfy TypeScript
-  slot.bookedBy = user._id as unknown as mongoose.Types.ObjectId;
-    await slot.save({ session });
+    const slot = await Slot.findById(slotId);
+    if (!slot) { 
+      return res.status(404).json({ message: 'Slot not found' }); 
+    }
+    
+    if (slot.status !== 'available') { 
+      return res.status(409).json({ message: 'Slot not available' }); 
+    }
+    
+    console.log('[slots:book] Slot found and available, user._id type:', typeof user._id, 'value:', user._id);
+    
+    // mark slot booked - use proper ObjectId assignment
+    slot.status = 'booked';
+    slot.bookedBy = new mongoose.Types.ObjectId(user._id as string);
+    await slot.save();
+    console.log('[slots:book] Slot marked as booked');
+    
     // create Session record
-    const tutorProfile = await TutorProfile.findById(slot.tutorId).session(session);
-    if (!tutorProfile) { await session.abortTransaction(); return res.status(404).json({ message: 'Tutor not found' }); }
-  const newSession = await Session.create([{ tutorId: tutorProfile._id, studentId: user._id, subject: req.body.subject || 'Tutoring', scheduledAt: slot.startAt, durationMinutes: slot.durationMinutes, status: 'scheduled', notes: req.body.notes || undefined }], { session });
+    const tutorProfile = await TutorProfile.findById(slot.tutorId);
+    if (!tutorProfile) { 
+      return res.status(404).json({ message: 'Tutor not found' }); 
+    }
+    
+    const newSession = await Session.create({ 
+      tutorId: tutorProfile._id, 
+      studentId: new mongoose.Types.ObjectId(user._id as string), 
+      subject: req.body.subject || 'Tutoring', 
+      scheduledAt: slot.startAt, 
+      durationMinutes: slot.durationMinutes, 
+      status: 'scheduled', 
+      notes: req.body.notes || undefined 
+    });
+    console.log('[slots:book] Session created:', newSession._id);
+    
     // link session id to slot
-  slot.sessionId = newSession[0]._id as any;
-    await slot.save({ session });
-    await session.commitTransaction();
-    session.endSession();
+    slot.sessionId = newSession._id;
+    await slot.save();
+    console.log('[slots:book] Slot updated with sessionId');
+    
     // create a non-blocking notification for the tutor so frontend polling picks up the booking
     try {
       const tutorUserId = tutorProfile.userId;
       try {
-        await (await import('../models/Notification')).Notification.create({ userId: tutorUserId as any, type: 'session_booked', data: { sessionId: newSession[0]._id, subject: req.body.subject || 'Tutoring', scheduledAt: slot.startAt, durationMinutes: slot.durationMinutes } });
+        await (await import('../models/Notification')).Notification.create({ userId: tutorUserId as any, type: 'session_booked', data: { sessionId: newSession._id, subject: req.body.subject || 'Tutoring', scheduledAt: slot.startAt, durationMinutes: slot.durationMinutes } });
       } catch (e) { /* ignore notification failures */ }
     } catch (e) { /* ignore dynamic import failures */ }
 
@@ -160,7 +191,7 @@ router.post('/:slotId/book', requireAuth, async (req: AuthRequest, res: Response
       const { getIo } = await import('../lib/socket');
       const io = getIo();
       if (io) {
-  const sessObj: any = (typeof newSession[0].toObject === 'function') ? newSession[0].toObject() : Object.assign({}, newSession[0]);
+        const sessObj: any = (typeof newSession.toObject === 'function') ? newSession.toObject() : Object.assign({}, newSession);
         // join user rooms by userId; tutorProfile.userId references the user
         if (tutorProfile && tutorProfile.userId) {
           io.to(`user:${String(tutorProfile.userId)}`).emit('session_created', sessObj);
@@ -173,20 +204,17 @@ router.post('/:slotId/book', requireAuth, async (req: AuthRequest, res: Response
 
     // Normalize session object for API clients: ensure _id exists and scheduledAt is an ISO string
     try {
-      const sessDoc: any = newSession[0];
-      const sessObj = (typeof sessDoc.toObject === 'function') ? sessDoc.toObject() : Object.assign({}, sessDoc);
+      const sessObj: any = (typeof newSession.toObject === 'function') ? newSession.toObject() : Object.assign({}, newSession);
       if (sessObj && sessObj.scheduledAt) {
         try { sessObj.scheduledAt = new Date(sessObj.scheduledAt).toISOString(); } catch (e) { /* ignore */ }
       }
       if (!sessObj._id && sessObj.id) sessObj._id = sessObj.id;
       return res.json({ ok: true, session: sessObj, slot });
     } catch (e) {
-      return res.json({ ok: true, session: newSession[0], slot });
+      return res.json({ ok: true, session: newSession, slot });
     }
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error(err);
+    console.error('[slots:book] Error:', err);
     return res.status(500).json({ message: 'Server error' });
   }
 });

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TutorsService } from '../../services/tutors.service';
@@ -14,7 +14,7 @@ import { TutorCardComponent } from '../../components/tutor-card/tutor-card';
   templateUrl: './find-tutors.html',
   styleUrls: ['./find-tutors.css']
 })
-export class FindTutors {
+export class FindTutors implements OnInit {
   private tutorsService = inject(TutorsService);
   private toast = inject(ToastService);
   private sessionsService = inject(SessionsService);
@@ -142,6 +142,8 @@ export class FindTutors {
     } catch (e) {}
 
     this.bookingTutorId = id;
+    console.log('[find-tutors] openBooking: tutor object:', tutor);
+    console.log('[find-tutors] openBooking: extracted tutorId:', this.bookingTutorId);
     const subj = tutor && (tutor.subjects || tutor.tutor?.subjects || tutor.subject || []);
     this.bookSubject = (Array.isArray(subj) ? subj[0] : subj) || '';
     this.selectedTutorSubjects = Array.isArray(subj) ? subj : (subj ? [subj] : []);
@@ -155,7 +157,16 @@ export class FindTutors {
     this.selectedSlot = null;
     // load tutor slots (upcoming available)
     if (this.bookingTutorId) {
-      this.slotsService.tutorSlots(this.bookingTutorId).subscribe({ next: (s:any) => { this.slots = s || []; }, error: () => { this.slots = []; } });
+      this.slotsService.tutorSlots(this.bookingTutorId).subscribe({ 
+        next: (s:any) => { 
+          console.log('[find-tutors] Slots loaded for tutorId:', this.bookingTutorId, 'slots:', s);
+          this.slots = s || []; 
+        }, 
+        error: (err:any) => { 
+          console.error('[find-tutors] Failed to load slots:', err);
+          this.slots = []; 
+        } 
+      });
     }
   }
 

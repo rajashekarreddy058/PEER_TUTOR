@@ -15,17 +15,28 @@ export class SignUpPage {
   private auth = inject(AuthService);
   private router = inject(Router);
 
-  fullName = '';
+  firstName = '';
+  surname = '';
   email = '';
   password = '';
+  confirmPassword = '';
   loading = false;
   error = '';
 
+  get passwordMismatch(): boolean {
+    return this.password !== this.confirmPassword && this.confirmPassword !== '';
+  }
+
   submit() {
-    if (!this.email || !this.password || !this.fullName) return;
+    if (!this.email || !this.password || !this.firstName || !this.surname) return;
+    if (this.password !== this.confirmPassword) {
+      this.error = 'Passwords do not match';
+      return;
+    }
+    
     this.loading = true;
     this.error = '';
-    this.auth.signUp(this.email, this.password, this.fullName).subscribe({
+    this.auth.signUp(this.email, this.password, this.firstName, this.surname).subscribe({
       next: () => {
         // signUp now signs in automatically and stores token/user; send user to dashboard
         this.router.navigateByUrl('/dashboard');

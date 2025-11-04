@@ -23,6 +23,7 @@ import { router as slotRoutes } from './routes/slot.routes';
 import { router as sessionRecordingRoutes } from './routes/session-recording.routes';
 import { router as chatRoutes } from './routes/chat.routes';
 import { router as recurringSessionsRoutes } from './routes/recurring-sessions.routes';
+import { router as userRoutes } from './routes/user.routes';
 
 dotenv.config();
 
@@ -101,6 +102,10 @@ app.use('/api/slots', slotRoutes);
 app.use('/api/recordings', sessionRecordingRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/recurring-sessions', recurringSessionsRoutes);
+app.use('/api/users', userRoutes);
+
+// Serve static files for profile pictures
+app.use('/uploads', express.static('uploads'));
 
 // NOTE: CORS already configured above via corsOptions; do not re-register here.
 const port = Number(process.env.PORT) || 4000;

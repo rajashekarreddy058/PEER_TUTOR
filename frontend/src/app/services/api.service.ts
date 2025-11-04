@@ -55,6 +55,12 @@ export class ApiService {
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
     return this.http.delete<T>(`${this.baseUrl}${path}`, headers ? { headers } : {});
   }
+
+  postFile<T>(path: string, formData: FormData) {
+    const token = localStorage.getItem('token');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    return this.http.post<T>(`${this.baseUrl}${path}`, formData, headers ? { headers } : {});
+  }
 }
 
 

@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -17,7 +17,7 @@ import { SlotsService } from '../../services/slots.service';
   templateUrl: './my-sessions.html',
   styleUrls: ['./my-sessions.css']
 })
-export class MySessions {
+export class MySessions implements OnInit, OnDestroy {
   private sessionsService = inject(SessionsService);
   private notificationsSvc = inject(NotificationService);
   private toast = inject(ToastService);

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -14,7 +14,7 @@ import { NotificationService } from '../../services/notification.service';
   templateUrl: './tutor-dashboard.html',
   styleUrls: ['./tutor-dashboard.css']
 })
-export class TutorDashboard {
+export class TutorDashboard implements OnInit, OnDestroy {
   private tutors = inject(TutorsService);
   private sessions = inject(SessionsService);
   private router = inject(Router);

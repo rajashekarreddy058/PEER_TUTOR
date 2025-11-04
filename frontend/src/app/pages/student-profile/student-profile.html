@@ -1,0 +1,305 @@
+<div class="profile-container">
+  <div class="profile-header">
+    <div class="profile-background"></div>
+    <div class="profile-content">
+      <div class="profile-picture-container">
+        <img 
+          [src]="getProfilePictureUrl()" 
+          alt="Profile Picture" 
+          class="profile-picture"
+        />
+        <div class="profile-picture-overlay" *ngIf="editing">
+          <div class="overlay-buttons">
+            <label for="profile-picture-input" class="upload-btn">
+              📷 Change Photo
+            </label>
+            <button class="remove-btn" (click)="removeProfilePicture()" *ngIf="profile?.profilePicture || previewUrl">
+              🗑️ Remove
+            </button>
+          </div>
+          <input 
+            type="file" 
+            id="profile-picture-input" 
+            accept="image/*" 
+            (change)="onFileSelected($event)"
+            style="display: none;"
+          />
+        </div>
+      </div>
+      
+      <div class="profile-info">
+        <h1 class="profile-name">{{ profile?.fullName || 'Loading...' }}</h1>
+        <p class="profile-email">{{ profile?.email }}</p>
+        <div class="profile-badges">
+          <span class="badge student-badge">🎓 Student</span>
+          <span class="badge tutor-badge" *ngIf="profile?.isTutor">👨‍🏫 Tutor</span>
+          <span class="badge join-date">Joined {{ getJoinDateFormatted() }}</span>
+        </div>
+        
+        <!-- Profile Picture Actions -->
+        <div class="profile-picture-actions mt-3">
+          <button class="btn btn-outline-primary btn-sm me-2" (click)="triggerFileInput()" [disabled]="loading">
+            <i class="bi bi-camera me-1"></i>
+            Change Photo
+          </button>
+          <button class="btn btn-outline-danger btn-sm me-2" 
+                  (click)="removeProfilePicture()" 
+                  *ngIf="profile?.profilePicture || previewUrl"
+                  [disabled]="loading">
+            <i class="bi bi-trash me-1"></i>
+            Remove Photo
+          </button>
+          <input 
+            type="file" 
+            id="profile-picture-input-main" 
+            accept="image/*" 
+            (change)="onFileSelected($event)"
+            style="display: none;"
+          />
+        </div>
+        
+        <!-- Loading indicator -->
+        <div class="mt-2" *ngIf="loading">
+          <div class="spinner-border spinner-border-sm text-primary" role="status">
+            <span class="visually-hidden">Saving...</span>
+          </div>
+          <span class="ms-2 small text-muted">Saving profile picture...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-body">
+    <div class="container">
+      <div class="row">
+        <!-- Profile Details Card -->
+        <div class="col-lg-8">
+          <div class="profile-card">
+            <div class="card-header">
+              <h3>📚 Profile Information</h3>
+              <button 
+                class="btn btn-outline-primary btn-sm" 
+                (click)="editing = !editing"
+                *ngIf="!editing"
+              >
+                ✏️ Edit Profile
+              </button>
+            </div>
+            
+            <div class="card-body">
+              <div class="error-message" *ngIf="error">{{ error }}</div>
+              
+              <form *ngIf="editing; else viewMode">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">First Name</label>
+                    <input 
+                      type="text" 
+                      class="form-control" 
+                      [(ngModel)]="editFirstName"
+                      name="firstName"
+                    />
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Surname</label>
+                    <input 
+                      type="text" 
+                      class="form-control" 
+                      [(ngModel)]="editSurname"
+                      name="surname"
+                    />
+                  </div>
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label">Bio</label>
+                  <textarea 
+                    class="form-control" 
+                    rows="3" 
+                    placeholder="Tell us about yourself..."
+                    [(ngModel)]="editBio"
+                    name="bio"
+                  ></textarea>
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label">Grade/Level</label>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    placeholder="e.g., Grade 10, University, etc."
+                    [(ngModel)]="editGrade"
+                    name="grade"
+                  />
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label">Educational Institute</label>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    placeholder="e.g., Harvard University, MIT, etc."
+                    [(ngModel)]="editEducationalInstitute"
+                    name="educationalInstitute"
+                  />
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label">Subjects of Interest</label>
+                  <div class="subjects-container">
+                    <div class="subject-tags">
+                      <span 
+                        class="subject-tag" 
+                        *ngFor="let subject of editSubjects; let i = index"
+                      >
+                        {{ subject }}
+                        <button 
+                          type="button" 
+                          class="remove-subject" 
+                          (click)="removeSubject(i)"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    </div>
+                    <button 
+                      type="button" 
+                      class="btn btn-outline-secondary btn-sm" 
+                      (click)="addSubject()"
+                    >
+                      + Add Subject
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="form-actions">
+                  <button 
+                    type="button" 
+                    class="btn btn-secondary" 
+                    (click)="cancelEdit()"
+                    [disabled]="loading"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-primary" 
+                    (click)="saveProfile()"
+                    [disabled]="loading"
+                  >
+                    {{ loading ? 'Saving...' : 'Save Changes' }}
+                  </button>
+                </div>
+                
+                <div class="sign-out-section">
+                  <hr class="my-4">
+                  <div class="text-center">
+                    <button 
+                      type="button" 
+                      class="btn btn-outline-danger btn-lg" 
+                      (click)="signOut()"
+                      title="Sign out of your account"
+                    >
+                      <i class="bi bi-box-arrow-right me-2"></i>
+                      Sign Out
+                    </button>
+                    <p class="small text-muted mt-2">This will end your current session</p>
+                  </div>
+                </div>
+              </form>
+              
+              <ng-template #viewMode>
+                <div class="profile-details">
+                  <div class="detail-item">
+                    <label>Bio</label>
+                    <p>{{ profile?.bio || 'No bio provided' }}</p>
+                  </div>
+                  
+                  <div class="detail-item">
+                    <label>Grade/Level</label>
+                    <p>{{ profile?.grade || 'Not specified' }}</p>
+                  </div>
+                  
+                  <div class="detail-item">
+                    <label>Educational Institute</label>
+                    <p>{{ profile?.educationalInstitute || 'Not specified' }}</p>
+                  </div>
+                  
+                  <div class="detail-item" *ngIf="hasSubjects">
+                    <label>Subjects of Interest</label>
+                    <div class="subject-tags">
+                      <span class="subject-tag" *ngFor="let subject of profile?.subjects || []">
+                        {{ subject }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="sign-out-section">
+                  <hr class="my-4">
+                  <div class="text-center">
+                    <button 
+                      type="button" 
+                      class="btn btn-outline-danger btn-lg" 
+                      (click)="signOut()"
+                      title="Sign out of your account"
+                    >
+                      <i class="bi bi-box-arrow-right me-2"></i>
+                      Sign Out
+                    </button>
+                    <p class="small text-muted mt-2">This will end your current session</p>
+                  </div>
+                </div>
+              </ng-template>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Progress & Stats Card -->
+        <div class="col-lg-4">
+          <div class="stats-card">
+            <h4>📊 Learning Progress</h4>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <div class="stat-number">0</div>
+                <div class="stat-label">Sessions Completed</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">0</div>
+                <div class="stat-label">Hours Learned</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">0</div>
+                <div class="stat-label">Tutors Connected</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">0</div>
+                <div class="stat-label">Achievements</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="achievements-card">
+            <h4>🏆 Recent Achievements</h4>
+            <div class="achievements-list">
+              <div class="achievement-item">
+                <span class="achievement-icon">🎯</span>
+                <div class="achievement-text">
+                  <strong>First Session</strong>
+                  <small>Complete your first tutoring session</small>
+                </div>
+              </div>
+              <div class="achievement-item">
+                <span class="achievement-icon">📚</span>
+                <div class="achievement-text">
+                  <strong>Knowledge Seeker</strong>
+                  <small>Book 5 tutoring sessions</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

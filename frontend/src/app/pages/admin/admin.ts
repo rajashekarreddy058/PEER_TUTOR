@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TutorsService } from '../../services/tutors.service';
 import { AdminJoinlogsPage } from '../admin-joinlogs/admin-joinlogs';
@@ -9,7 +9,7 @@ import { AdminJoinlogsPage } from '../admin-joinlogs/admin-joinlogs';
   templateUrl: './admin.html',
   styleUrls: ['./admin.css']
 })
-export class Admin {
+export class Admin implements OnInit {
   private tutors = inject(TutorsService);
   list: any[] = [];
   loading = true;

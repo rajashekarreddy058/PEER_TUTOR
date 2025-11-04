@@ -1,33 +1,114 @@
 <div class="auth-root d-flex align-items-center justify-content-center">
   <div class="auth-card card p-4 shadow-sm text-center">
-    <div class="auth-icon mb-3">👤</div>
-    <h2 class="fw-bold mb-1">Peer Tutoring Platform</h2>
-    <p class="text-secondary small mb-4">Create your account</p>
+    <div class="auth-icon mb-3">🎓</div>
+    <h2 class="fw-bold mb-1">PeerTutor</h2>
+    <p class="text-secondary small mb-4">Join our educational community</p>
 
-    <div class="mb-3 text-start">
-      <label class="form-label small">Full Name</label>
-      <input class="form-control" placeholder="John Doe" [(ngModel)]="fullName" />
-    </div>
+    <form (ngSubmit)="submit()" #signupForm="ngForm">
+      <div class="row">
+        <div class="col-md-6 mb-3 text-start">
+          <label class="form-label small fw-semibold">First Name</label>
+          <input 
+            class="form-control" 
+            placeholder="John" 
+            [(ngModel)]="firstName" 
+            name="firstName"
+            required
+            #firstNameInput="ngModel"
+            [class.is-invalid]="firstNameInput.invalid && firstNameInput.touched"
+          />
+          <div class="invalid-feedback" *ngIf="firstNameInput.invalid && firstNameInput.touched">
+            First name is required
+          </div>
+        </div>
 
-    <div class="mb-3 text-start">
-      <label class="form-label small">Email</label>
-      <input class="form-control" placeholder="you@example.com" [(ngModel)]="email" />
-    </div>
+        <div class="col-md-6 mb-3 text-start">
+          <label class="form-label small fw-semibold">Surname</label>
+          <input 
+            class="form-control" 
+            placeholder="Doe" 
+            [(ngModel)]="surname" 
+            name="surname"
+            required
+            #surnameInput="ngModel"
+            [class.is-invalid]="surnameInput.invalid && surnameInput.touched"
+          />
+          <div class="invalid-feedback" *ngIf="surnameInput.invalid && surnameInput.touched">
+            Surname is required
+          </div>
+        </div>
+      </div>
 
-    <div class="mb-3 text-start">
-      <label class="form-label small">Password</label>
-      <input type="password" class="form-control" placeholder="********" [(ngModel)]="password" />
-    </div>
+      <div class="mb-3 text-start">
+        <label class="form-label small fw-semibold">Email Address</label>
+        <input 
+          type="email" 
+          class="form-control" 
+          placeholder="john.doe@example.com" 
+          [(ngModel)]="email" 
+          name="email"
+          required
+          email
+          #emailInput="ngModel"
+          [class.is-invalid]="emailInput.invalid && emailInput.touched"
+        />
+        <div class="invalid-feedback" *ngIf="emailInput.invalid && emailInput.touched">
+          <span *ngIf="emailInput.errors?.['required']">Email is required</span>
+          <span *ngIf="emailInput.errors?.['email']">Please enter a valid email</span>
+        </div>
+      </div>
 
-    <div class="text-danger small mb-2" *ngIf="error">{{ error }}</div>
+      <div class="mb-3 text-start">
+        <label class="form-label small fw-semibold">Create Password</label>
+        <input 
+          type="password" 
+          class="form-control" 
+          placeholder="Create a strong password" 
+          [(ngModel)]="password" 
+          name="password"
+          required
+          minlength="6"
+          #passwordInput="ngModel"
+          [class.is-invalid]="passwordInput.invalid && passwordInput.touched"
+        />
+        <div class="invalid-feedback" *ngIf="passwordInput.invalid && passwordInput.touched">
+          <span *ngIf="passwordInput.errors?.['required']">Password is required</span>
+          <span *ngIf="passwordInput.errors?.['minlength']">Password must be at least 6 characters</span>
+        </div>
+      </div>
 
-    <button class="btn btn-primary w-100 btn-lg mt-2" [disabled]="loading" (click)="submit()">
-      {{ loading ? 'Creating...' : 'Sign Up' }}
-    </button>
+      <div class="mb-3 text-start">
+        <label class="form-label small fw-semibold">Confirm Password</label>
+        <input 
+          type="password" 
+          class="form-control" 
+          placeholder="Confirm your password" 
+          [(ngModel)]="confirmPassword" 
+          name="confirmPassword"
+          required
+          #confirmPasswordInput="ngModel"
+          [class.is-invalid]="(confirmPasswordInput.invalid && confirmPasswordInput.touched) || passwordMismatch"
+        />
+        <div class="invalid-feedback" *ngIf="(confirmPasswordInput.invalid && confirmPasswordInput.touched) || passwordMismatch">
+          <span *ngIf="confirmPasswordInput.errors?.['required']">Please confirm your password</span>
+          <span *ngIf="passwordMismatch">Passwords do not match</span>
+        </div>
+      </div>
 
-    <div class="text-center mt-3 small">
-      <a [routerLink]="'/signin'">Already have an account? Sign in</a>
-    </div>
+      <div class="text-danger small mb-2" *ngIf="error">{{ error }}</div>
+
+      <button 
+        type="submit" 
+        class="btn btn-primary w-100 btn-lg mt-2" 
+        [disabled]="loading || !signupForm.valid || passwordMismatch"
+      >
+        {{ loading ? 'Creating Account...' : 'Join PeerTutor' }}
+      </button>
+
+      <div class="text-center mt-3 small">
+        <a [routerLink]="'/signin'" class="text-decoration-none">Already have an account? Sign in</a>
+      </div>
+    </form>
   </div>
 </div>
 
