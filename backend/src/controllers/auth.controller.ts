@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
+import { Notification } from '../models/Notification';
+import { sendNotificationToUser } from '../lib/socket';
 
 export async function signUp(req: Request, res: Response) {
   const { email, password, firstName, surname } = req.body;
@@ -29,6 +31,12 @@ export async function signIn(req: Request, res: Response) {
   if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
   const secret = process.env.JWT_SECRET || 'dev_secret';
   const token = jwt.sign({ userId: user.id }, secret, { expiresIn: '7d' });
+  // Create a welcome notification (non-blocking)
+  try {
+    const note = await Notification.create({ userId: user.id, type: 'system_announcement', title: 'Welcome to PeerTutor', message: `Welcome back, ${user.fullName || ''}!`, category: 'system' });
+  try { sendNotificationToUser(String(user.id), { id: note._id, type: note.type, title: note.title, message: note.message, data: note.data, read: note.read, createdAt: (note as any).createdAt }); } catch (e) {}
+  } catch (e) { /* ignore notification errors */ }
+
   return res.json({ token, user: { id: user.id, email: user.email, fullName: user.fullName, isTutor: user.isTutor } });
 }
 

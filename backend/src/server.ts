@@ -142,7 +142,10 @@ try {
         }
       }
       if (userId) {
-        try { socket.join(`user:${userId}`); } catch (e) {}
+        try {
+          socket.join(`user:${userId}`);
+          try { console.debug(`socket ${socket.id} joined user:${userId}`); } catch (e) {}
+        } catch (e) {}
       }
 
       socket.on('disconnect', () => {

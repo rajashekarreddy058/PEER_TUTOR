@@ -41,14 +41,27 @@ export class App implements OnInit {
 
   ngOnInit() {
     // start notifications polling when authenticated
-    if (this.isAuthed()) {
-      // connect socket with current token
-      try { this.socketSvc.connect(localStorage.getItem('token')).catch((e: any) => {}); } catch {}
+    if (this.isAuthed()) this.initializeNotifications();
 
-      // listen for server push events
-      try { this.socketSvc.on('session_started', (data: any) => { try { window.dispatchEvent(new CustomEvent('session:started', { detail: data })); } catch {} }); } catch {}
-      try { this.socketSvc.on('session_created', (data: any) => { try { window.dispatchEvent(new CustomEvent('session:booked', { detail: data })); } catch {} }); } catch {}
-      try { this.notificationsSvc.start(); } catch {}
+    // Listen for sign-in events so we can connect sockets when a user signs in at runtime
+    try {
+      window.addEventListener('auth:signed_in', (ev: any) => {
+        try { this.initializeNotifications(); } catch (e) {}
+      });
+    } catch (e) {}
+  }
+
+  private initializeNotifications() {
+    // connect socket with current token
+    try { this.socketSvc.connect(localStorage.getItem('token')).catch((e: any) => {}); } catch {}
+
+    // listen for server push events
+    try { this.socketSvc.on('session_started', (data: any) => { try { window.dispatchEvent(new CustomEvent('session:started', { detail: data })); } catch {} }); } catch {}
+    try { this.socketSvc.on('session_created', (data: any) => { try { window.dispatchEvent(new CustomEvent('session:booked', { detail: data })); } catch {} }); } catch {}
+    try { this.notificationsSvc.start(); } catch {}
+
+    // subscribe to notification streams
+    try {
       this.notificationsSvc.notifications$.subscribe((list) => {
         // map into enhanced shape with new fields
         this.notifications = (list || []).map((n: any) => ({ 
@@ -65,12 +78,10 @@ export class App implements OnInit {
           createdAt: n.createdAt
         }));
       });
-      
-      // Subscribe to unread count
-      this.notificationsSvc.unreadCount$.subscribe((count) => {
-        this.unreadCount = count;
-      });
-    }
+    } catch (e) {}
+
+    // Subscribe to unread count
+    try { this.notificationsSvc.unreadCount$.subscribe((count) => { this.unreadCount = count; }); } catch (e) {}
   }
 
   joinFromNotification(n: any) {

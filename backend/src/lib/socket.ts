@@ -12,6 +12,9 @@ export function getIo() {
 export function sendNotificationToUser(userId: string, notification: any) {
   const io = getIo();
   if (io) {
+    try {
+      console.debug(`emit notification -> user:${userId}`, notification && notification.type ? notification.type : 'notification');
+    } catch (e) {}
     io.to(`user:${userId}`).emit('notification', notification);
   }
 }
@@ -21,6 +24,7 @@ export function sendNotificationToUsers(userIds: string[], notification: any) {
   const io = getIo();
   if (io) {
     userIds.forEach(userId => {
+      try { console.debug(`emit notification -> user:${userId}`, notification && notification.type ? notification.type : 'notification'); } catch (e) {}
       io.to(`user:${userId}`).emit('notification', notification);
     });
   }
@@ -30,6 +34,7 @@ export function sendNotificationToUsers(userIds: string[], notification: any) {
 export function broadcastNotification(notification: any) {
   const io = getIo();
   if (io) {
+    try { console.debug('broadcast notification', notification && notification.type ? notification.type : 'notification'); } catch (e) {}
     io.emit('notification', notification);
   }
 }
@@ -38,6 +43,7 @@ export function broadcastNotification(notification: any) {
 export function sendSessionUpdate(sessionId: string, update: any) {
   const io = getIo();
   if (io) {
+    try { console.debug('emit session_update', sessionId, update); } catch (e) {}
     io.emit('session_update', { sessionId, ...update });
   }
 }

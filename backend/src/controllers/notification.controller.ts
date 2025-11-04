@@ -20,8 +20,23 @@ export async function listNotifications(req: AuthRequest, res: Response) {
   const list = await Notification.find(query)
     .sort({ priority: -1, createdAt: -1 })
     .limit(parseInt(limit as string));
-    
-  res.json(list);
+  // Post-process some legacy/older notifications: if a notification lacks a title/message
+  // but has type 'session_booked', try to enrich it with student name using sessionId
+  const enriched = await Promise.all((list || []).map(async (n: any) => {
+    try {
+      if ((!n.title || String(n.title).trim() === '') && n.type === 'session_booked' && n.data && n.data.sessionId) {
+        const { Session } = await import('../models/Session');
+        const sess = await Session.findById(n.data.sessionId).populate({ path: 'studentId', select: 'fullName' }).lean();
+        let studentName = 'A student';
+        if (sess && (sess as any).studentId && (sess as any).studentId.fullName) studentName = (sess as any).studentId.fullName;
+        n.title = 'Session booked';
+        n.message = `Session booked by ${studentName}`;
+      }
+    } catch (e) { /* ignore enrichment errors */ }
+    return n;
+  }));
+
+  res.json(enriched);
 }
 
 export async function markRead(req: AuthRequest, res: Response) {

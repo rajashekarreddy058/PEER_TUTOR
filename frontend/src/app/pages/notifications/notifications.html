@@ -39,7 +39,6 @@
           <div class="notification-message text-secondary mb-2">{{ notification.message || notification.body }}</div>
           
           <div class="d-flex align-items-center gap-2 mb-3">
-            <span class="badge" [ngClass]="getPriorityClass(notification.priority)">{{ notification.priority }}</span>
             <span class="badge bg-secondary">{{ notification.category }}</span>
             <span class="badge bg-light text-dark" *ngIf="!notification.read">New</span>
           </div>

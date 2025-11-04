@@ -2,6 +2,8 @@ import { Request, Response, Router } from 'express';
 import { Slot } from '../models/Slot';
 import { TutorProfile } from '../models/TutorProfile';
 import { Session } from '../models/Session';
+import { Notification } from '../models/Notification';
+import { sendNotificationToUser } from '../lib/socket';
 import mongoose from 'mongoose';
 import { requireAuth, AuthRequest } from '../middleware/auth.middleware';
 import { User } from '../models/User';
@@ -206,9 +208,23 @@ router.post('/:slotId/book', requireAuth, async (req: AuthRequest, res: Response
     try {
       const tutorUserId = tutorProfile.userId;
       try {
-        await (await import('../models/Notification')).Notification.create({ userId: tutorUserId as any, type: 'session_booked', data: { sessionId: newSession._id, subject: req.body.subject || 'Tutoring', scheduledAt: slot.startAt, durationMinutes: slot.durationMinutes } });
+        const studentName = user?.fullName || 'A student';
+        const note = await Notification.create({ userId: String(tutorUserId), type: 'session_booked', title: 'Session booked', message: `Session booked by ${studentName}`, data: { sessionId: newSession._id, subject: req.body.subject || 'Tutoring', scheduledAt: slot.startAt, durationMinutes: slot.durationMinutes } });
+        try { sendNotificationToUser(String(tutorUserId), { id: note._id, type: note.type, title: note.title || 'Session booked', message: note.message || `Session booked by ${studentName}`, data: note.data, read: note.read, createdAt: (note as any).createdAt }); } catch (e) {}
+        // also notify the student with the tutor's name
+        try {
+          let tutorName = 'Tutor';
+          try {
+            if (tutorProfile.userId) {
+              const tutUser = await User.findById(String(tutorProfile.userId)).select('fullName').lean();
+              if (tutUser && (tutUser as any).fullName) tutorName = (tutUser as any).fullName;
+            }
+          } catch (e) {}
+          const studentNote = await Notification.create({ userId: String(user._id), type: 'session_booked', title: 'Session booked', message: `Session booked with ${tutorName}`, data: { sessionId: newSession._id, subject: req.body.subject || 'Tutoring', scheduledAt: slot.startAt, durationMinutes: slot.durationMinutes } });
+          try { sendNotificationToUser(String(user._id), { id: studentNote._id, type: studentNote.type, title: studentNote.title || 'Session booked', message: studentNote.message || `Session booked with ${tutorName}`, data: studentNote.data, read: studentNote.read, createdAt: (studentNote as any).createdAt }); } catch (e) {}
+        } catch (e) { /* ignore student notification failures */ }
       } catch (e) { /* ignore notification failures */ }
-    } catch (e) { /* ignore dynamic import failures */ }
+    } catch (e) { /* ignore */ }
 
     // emit socket event to tutor (and student) so real-time clients update immediately
     try {
@@ -293,7 +309,7 @@ router.post('/:slotId/switch/:sessionId', requireAuth, async (req: AuthRequest, 
     try {
       const tutorProfile = await TutorProfile.findById(session.tutorId);
       if (tutorProfile && tutorProfile.userId) {
-        try { await (await import('../models/Notification')).Notification.create({ userId: tutorProfile.userId as any, type: 'session_rescheduled', data: { sessionId: session._id, scheduledAt: session.scheduledAt } }); } catch (e) { /* ignore */ }
+    try { await Notification.create({ userId: String(tutorProfile.userId), type: 'session_rescheduled', data: { sessionId: session._id, scheduledAt: session.scheduledAt } }); } catch (e) { /* ignore */ }
       }
       try {
         const { getIo } = await import('../lib/socket');

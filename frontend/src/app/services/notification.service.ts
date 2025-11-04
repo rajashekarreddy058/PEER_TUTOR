@@ -27,7 +27,10 @@ export class NotificationService {
       this.pollSub = interval(30000)
         .pipe(switchMap(() => this.api.get<any[]>('/notifications')))
         .subscribe({ 
-          next: (list) => this.zone.run(() => this.notifications$.next(list || [])), 
+          next: (list) => this.zone.run(() => {
+            const normalized = (list || []).map((n: any) => ({ ...(n || {}), id: n.id || n._id }));
+            this.notifications$.next(normalized);
+          }), 
           error: () => {} 
         });
     }
@@ -42,7 +45,10 @@ export class NotificationService {
 
   loadOnce() {
     this.api.get<any[]>('/notifications').subscribe({ 
-      next: (list) => this.zone.run(() => this.notifications$.next(list || [])), 
+      next: (list) => this.zone.run(() => {
+        const normalized = (list || []).map((n: any) => ({ ...(n || {}), id: n.id || n._id }));
+        this.notifications$.next(normalized);
+      }), 
       error: () => {} 
     });
   }
@@ -83,6 +89,8 @@ export class NotificationService {
       // Listen for real-time notifications
       this.socketService.on('notification', (notification: any) => {
         this.zone.run(() => {
+          // Normalize incoming notification to include `id` for frontend
+          if (notification && !notification.id && notification._id) notification.id = notification._id;
           // Add new notification to the list
           const currentNotifications = this.notifications$.value;
           const updatedNotifications = [notification, ...currentNotifications];

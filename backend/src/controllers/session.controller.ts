@@ -4,6 +4,8 @@ import { Session } from '../models/Session';
 import { Slot } from '../models/Slot';
 import { TutorProfile } from '../models/TutorProfile';
 import { Notification } from '../models/Notification';
+import { sendNotificationToUser } from '../lib/socket';
+import { User } from '../models/User';
 import { Feedback } from '../models/Feedback';
 import jwt from 'jsonwebtoken';
 import { IssuedToken } from '../models/IssuedToken';
@@ -88,8 +90,29 @@ export async function bookSession(req: AuthRequest, res: Response) {
   if (conflict) return res.status(409).json({ message: 'Time slot not available' });
 
   const session = await Session.create({ tutorId, studentId: userId, subject, scheduledAt: start, durationMinutes, notes });
-  // Notify tutor
-  await Notification.create({ userId: tutor.userId, type: 'session_booked', data: { sessionId: session._id, subject, scheduledAt: start, durationMinutes } });
+  // Notify tutor (persist + real-time emit if connected)
+  try {
+    // include student's name in the notification message
+    let studentName = 'A student';
+    try {
+      const student = await User.findById(userId).select('fullName').lean();
+      if (student && (student as any).fullName) studentName = (student as any).fullName;
+    } catch (e) {}
+    const note = await Notification.create({ userId: String(tutor.userId), type: 'session_booked', title: 'Session booked', message: `Session booked by ${studentName}`, data: { sessionId: session._id, subject, scheduledAt: start, durationMinutes } });
+    try { sendNotificationToUser(String(tutor.userId), { id: note._id, type: note.type, title: note.title || 'Session booked', message: note.message || `Session booked by ${studentName}`, data: note.data, read: note.read, createdAt: (note as any).createdAt }); } catch (e) {}
+  } catch (e) { console.error('failed to create/emit tutor notification', e); }
+  // Notify student (persist + real-time emit if connected) with tutor name
+  try {
+    let tutorName = 'Tutor';
+    try {
+      if (tutor.userId) {
+        const tutUser = await User.findById(String(tutor.userId)).select('fullName').lean();
+        if (tutUser && (tutUser as any).fullName) tutorName = (tutUser as any).fullName;
+      }
+    } catch (e) {}
+    const studentNote = await Notification.create({ userId: String(userId), type: 'session_booked', title: 'Session booked', message: `Session booked with ${tutorName}`, data: { sessionId: session._id, subject, scheduledAt: start, durationMinutes } });
+    try { sendNotificationToUser(String(userId), { id: studentNote._id, type: studentNote.type, title: studentNote.title || 'Session booked', message: studentNote.message || `Session booked with ${tutorName}`, data: studentNote.data, read: studentNote.read, createdAt: (studentNote as any).createdAt }); } catch (e) {}
+  } catch (e) { console.error('failed to create/emit student notification', e); }
   res.status(201).json(session);
 }
 
@@ -102,7 +125,10 @@ export async function requestMeeting(req: AuthRequest, res: Response) {
     const tutor = await TutorProfile.findById(tutorId);
     if (!tutor) return res.status(404).json({ message: 'Tutor not found' });
     // create notification for tutor to respond
-    await Notification.create({ userId: tutor.userId as any, type: 'meeting_request', data: { from: userId, subject: subject || 'Meeting request', message: message || '' } });
+    try {
+      const note = await Notification.create({ userId: String(tutor.userId), type: 'meeting_request', data: { from: userId, subject: subject || 'Meeting request', message: message || '' } });
+  try { sendNotificationToUser(String(tutor.userId), { id: note._id, type: note.type, title: note.title || 'Meeting request', message: note.message || message || '', data: note.data, read: note.read, createdAt: (note as any).createdAt }); } catch (e) {}
+    } catch (e) { /* ignore */ }
     return res.json({ ok: true });
   } catch (e) {
     console.error('requestMeeting failed', e);
@@ -146,7 +172,16 @@ export async function instantStart(req: AuthRequest, res: Response) {
 
     // notify connected students or the tutor's students (best-effort)
     try {
-      await Notification.create({ userId: session.studentId || session.tutorId, type: 'session_started', data: { sessionId: session._id, meetingUrl, joinToken, expiresAt } });
+      if (session.studentId) {
+        const note = await Notification.create({ userId: String(session.studentId), type: 'session_started', data: { sessionId: session._id, meetingUrl, joinToken, expiresAt } });
+        try { sendNotificationToUser(String(session.studentId), { id: note._id, type: note.type, title: note.title || 'Session started', message: note.message || '', data: note.data, read: note.read, createdAt: (note as any).createdAt }); } catch (e) {}
+      }
+      const tutorProfileTmp = await TutorProfile.findById(session.tutorId);
+      const tutorUserTmp = tutorProfileTmp ? tutorProfileTmp.userId : session.tutorId;
+      if (tutorUserTmp) {
+        const note = await Notification.create({ userId: String(tutorUserTmp), type: 'session_started', data: { sessionId: session._id, meetingUrl, joinToken, expiresAt } });
+        try { sendNotificationToUser(String(tutorUserTmp), { id: note._id, type: note.type, title: note.title || 'Session started', message: note.message || '', data: note.data, read: note.read, createdAt: (note as any).createdAt }); } catch (e) {}
+      }
     } catch (e) { /* ignore */ }
 
     // emit socket event to involved users
@@ -184,7 +219,7 @@ export async function completeSession(req: AuthRequest, res: Response) {
 
   session.status = 'completed' as any;
   await session.save();
-  try { await Notification.create({ userId: session.studentId, type: 'session_completed', data: { sessionId: session._id } }); } catch (e) {}
+  try { if (session.studentId) { const note = await Notification.create({ userId: String(session.studentId), type: 'session_completed', data: { sessionId: session._id } }); try { sendNotificationToUser(String(session.studentId), { id: note._id, type: note.type, title: note.title || 'Session completed', message: note.message || '', data: note.data, read: note.read, createdAt: (note as any).createdAt }); } catch (e) {} } } catch (e) {}
   res.json(session);
 }
 
@@ -192,7 +227,7 @@ export async function cancelSession(req: AuthRequest, res: Response) {
   const { id } = req.params;
   const session = await Session.findByIdAndUpdate(id, { status: 'cancelled' }, { new: true });
   if (session) {
-    await Notification.create({ userId: session.tutorId as any, type: 'session_cancelled', data: { sessionId: session._id } });
+    try { const note = await Notification.create({ userId: String(session.tutorId), type: 'session_cancelled', data: { sessionId: session._id } }); try { sendNotificationToUser(String(session.tutorId), { id: note._id, type: note.type, title: note.title || 'Session cancelled', message: note.message || '', data: note.data, read: note.read, createdAt: (note as any).createdAt }); } catch (e) {} } catch (e) {}
     // If this session was created from a slot, free that slot for others
     try {
       await Slot.findOneAndUpdate({ sessionId: session._id }, { status: 'available', bookedBy: null, sessionId: null });
@@ -287,15 +322,19 @@ export async function startSession(req: AuthRequest, res: Response) {
 
   console.log(`Session ${session._id} started by user ${userId}. meetingUrl=${meetingUrl} token=${joinToken} expires=${expiresAt.toISOString()}`);
 
-  // notify the student
+  // notify the student and tutor (best-effort)
   try {
-    await Notification.create({ userId: session.studentId as any, type: 'session_started', data: { sessionId: session._id, meetingUrl, joinToken, expiresAt } });
+    if (session.studentId) {
+      const note = await Notification.create({ userId: String(session.studentId), type: 'session_started', data: { sessionId: session._id, meetingUrl, joinToken, expiresAt } });
+      try { sendNotificationToUser(String(session.studentId), { id: note._id, type: note.type, title: note.title || 'Session started', message: note.message || '', data: note.data, read: note.read, createdAt: (note as any).createdAt }); } catch (e) {}
+    }
     // also notify the tutor (their userId is stored on TutorProfile)
     try {
       const tutorProfile = await TutorProfile.findById(session.tutorId);
       const tutorUser = tutorProfile ? tutorProfile.userId : session.tutorId;
       if (tutorUser) {
-        await Notification.create({ userId: tutorUser as any, type: 'session_started', data: { sessionId: session._id, meetingUrl, joinToken, expiresAt } });
+        const note = await Notification.create({ userId: String(tutorUser), type: 'session_started', data: { sessionId: session._id, meetingUrl, joinToken, expiresAt } });
+        try { sendNotificationToUser(String(tutorUser), { id: note._id, type: note.type, title: note.title || 'Session started', message: note.message || '', data: note.data, read: note.read, createdAt: (note as any).createdAt }); } catch (e) {}
       }
     } catch (e) {
       console.error('failed to create tutor notification', e);
@@ -466,7 +505,7 @@ export async function updateSession(req: AuthRequest, res: Response) {
   if (notes !== undefined) session.notes = notes;
   await session.save();
   // notify tutor of update
-  try { await Notification.create({ userId: session.tutorId as any, type: 'session_updated', data: { sessionId: session._id } }); } catch (e) {}
+  try { const note = await Notification.create({ userId: String(session.tutorId), type: 'session_updated', data: { sessionId: session._id } }); try { sendNotificationToUser(String(session.tutorId), { id: note._id, type: note.type, title: note.title || 'Session updated', message: note.message || '', data: note.data, read: note.read, createdAt: (note as any).createdAt }); } catch (e) {} } catch (e) {}
   res.json(session);
 }
 
@@ -481,7 +520,7 @@ export async function deleteSession(req: AuthRequest, res: Response) {
 
   session.status = 'cancelled' as any;
   await session.save();
-  try { await Notification.create({ userId: session.tutorId as any, type: 'session_cancelled', data: { sessionId: session._id } }); } catch (e) {}
+  try { const note = await Notification.create({ userId: String(session.tutorId), type: 'session_cancelled', data: { sessionId: session._id } }); try { sendNotificationToUser(String(session.tutorId), { id: note._id, type: note.type, title: note.title || 'Session cancelled', message: note.message || '', data: note.data, read: note.read, createdAt: (note as any).createdAt }); } catch (e) {} } catch (e) {}
   // If the session was linked to a slot, free the slot so others can book it
   try {
     await Slot.findOneAndUpdate({ sessionId: session._id }, { status: 'available', bookedBy: null, sessionId: null });

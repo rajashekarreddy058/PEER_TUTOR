@@ -13,6 +13,10 @@ export class AuthService {
         if (res.user) {
           localStorage.setItem('user', JSON.stringify(res.user));
         }
+        try {
+          // notify other parts of the app that sign-in occurred (so they can connect sockets / start notifications)
+          try { window.dispatchEvent(new CustomEvent('auth:signed_in', { detail: { token: res.token, user: res.user } })); } catch (e) {}
+        } catch (e) {}
       })
     );
   }
