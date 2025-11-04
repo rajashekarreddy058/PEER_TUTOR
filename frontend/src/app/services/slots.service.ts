@@ -12,4 +12,6 @@ export class SlotsService {
   deleteSlot(slotId: string) { return this.api.delete(`/slots/${slotId}`); }
   bookSlot(slotId: string, payload: any) { return this.api.post(`/slots/${slotId}/book`, payload); }
   myBookings() { return this.api.get(`/slots/my-bookings`); }
+  // Switch an existing session to a different available slot (student action)
+  switchSlot(slotId: string, sessionId: string) { return this.api.post(`/slots/${slotId}/switch/${sessionId}`, null); }
 }

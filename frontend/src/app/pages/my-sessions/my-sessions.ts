@@ -492,9 +492,20 @@ export class MySessions implements OnInit, OnDestroy {
     this.editingSlotOptions = [];
     // Try to fetch available slots for the tutor to allow moving the booking to another slot
     try {
-      const tutorId = s.tutorId || s.tutor?._id || s.tutor?.user?._id || null;
+      // Resolve TutorProfile._id (the Slot.tutorId stores the TutorProfile _id).
+      const tutorIdCandidates = [s.tutor?._id, s.tutorId, s.tutor?.user?._id, s.tutor?.userId, s.tutor?._id?.$oid];
+      let tutorId: any = null;
+      for (const c of tutorIdCandidates) {
+        if (!c) continue;
+        // if object shape, try to extract _id field
+        if (typeof c === 'object') {
+          if (c._id) { tutorId = c._id; break; }
+          if (c.id) { tutorId = c.id; break; }
+        } else if (typeof c === 'string' && c.trim().length > 0) { tutorId = c; break; }
+      }
       if (tutorId) {
         try {
+          // fetch only available upcoming slots
           this.slotsService.tutorSlots(String(tutorId)).subscribe({ next: (list:any) => this.editingSlotOptions = list || [], error: () => this.editingSlotOptions = [] });
         } catch (e) { this.editingSlotOptions = []; }
       }
@@ -514,18 +525,16 @@ export class MySessions implements OnInit, OnDestroy {
       this.toast.push('Unable to access slots service', 'error');
       return;
     }
-    slotsSvc.bookSlot(this.selectedEditSlot, payload).subscribe({ next: (res: any) => {
-      // on success, delete the old session
-      this.sessionsService.delete(id).subscribe({ next: () => {
-        this.toast.push('Session moved to new slot', 'success');
-        this.editingSession = null;
-        this.reloadSessions();
-      }, error: (err: any) => {
-        this.toast.push('Booked new slot but failed to delete old session', 'error');
-        this.reloadSessions();
-      } });
+    // Prefer a server-side atomic switch endpoint to move the session to the new slot
+    slotsSvc.switchSlot(this.selectedEditSlot, id).subscribe({ next: (res: any) => {
+      this.toast.push('Session moved to new slot', 'success');
+      this.editingSession = null;
+      this.reloadSessions();
     }, error: (err: any) => {
-      this.toast.push(err?.error?.message || 'Failed to book selected slot', 'error');
+      // fall back to trying to book then delete if switch endpoint fails
+      const msg = err?.error?.message || err?.message || 'Failed to move session';
+      this.toast.push(msg, 'error');
+      this.reloadSessions();
     } });
     return;
   }

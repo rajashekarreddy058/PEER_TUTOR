@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { AuthRequest } from '../middleware/auth.middleware';
 import { User } from '../models/User';
 import multer from 'multer';
 import path from 'path';
@@ -55,7 +56,7 @@ export async function getUserProfile(req: Request, res: Response) {
   }
 }
 
-export async function updateUserProfile(req: Request, res: Response) {
+export async function updateUserProfile(req: AuthRequest, res: Response) {
   try {
     const { userId } = req.params;
     const { firstName, surname, bio, grade, subjects, educationalInstitute } = req.body;
@@ -98,7 +99,7 @@ export async function updateUserProfile(req: Request, res: Response) {
   }
 }
 
-export async function uploadProfilePicture(req: Request, res: Response) {
+export async function uploadProfilePicture(req: AuthRequest, res: Response) {
   try {
     const { userId } = req.params;
     

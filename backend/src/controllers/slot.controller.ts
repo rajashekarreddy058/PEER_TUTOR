@@ -173,8 +173,9 @@ router.post('/:slotId/book', requireAuth, async (req: AuthRequest, res: Response
     });
     console.log('[slots:book] Session created:', newSession._id);
     
-    // link session id to slot
-    slot.sessionId = newSession._id;
+  // link session id to slot
+  // `newSession._id` may be typed as unknown by mongoose types; cast to any
+  slot.sessionId = newSession._id as any;
     await slot.save();
     console.log('[slots:book] Slot updated with sessionId');
     
@@ -219,6 +220,76 @@ router.post('/:slotId/book', requireAuth, async (req: AuthRequest, res: Response
   }
 });
 
+// Student switches an existing session to a different available slot
+// Usage: POST /api/slots/:slotId/switch/:sessionId
+router.post('/:slotId/switch/:sessionId', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.userId!;
+    const user = await User.findById(uid);
+    if (!user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const { slotId, sessionId } = req.params as { slotId: string; sessionId: string };
+    const session = await Session.findById(sessionId);
+    if (!session) return res.status(404).json({ message: 'Session not found' });
+    // Only the student who owns the session can switch it
+    if (String(session.studentId) !== String(user._id)) return res.status(403).json({ message: 'Not authorized to change this session' });
+    if (session.status !== 'scheduled') return res.status(400).json({ message: 'Only scheduled sessions can be rescheduled' });
+
+    // Attempt to atomically mark the target slot as booked (only if still available)
+    const targetSlot = await Slot.findOneAndUpdate({ _id: slotId, status: 'available' }, { $set: { status: 'booked', bookedBy: user._id, sessionId: session._id } }, { new: true });
+    if (!targetSlot) return res.status(409).json({ message: 'Target slot not available' });
+
+    // Ensure tutor matches
+    if (String(targetSlot.tutorId) !== String(session.tutorId)) {
+      // revert booking on target slot
+      try { await Slot.findByIdAndUpdate(targetSlot._id, { $set: { status: 'available' }, $unset: { bookedBy: '', sessionId: '' } }); } catch (e) {}
+      return res.status(400).json({ message: 'Target slot does not belong to the same tutor' });
+    }
+
+    // Free previous slot (if any) that was linked to this session
+    let freedSlot: any = null;
+    try {
+      const oldSlot = await Slot.findOne({ sessionId: session._id });
+      if (oldSlot && String(oldSlot._id) !== String(targetSlot._id)) {
+        freedSlot = oldSlot;
+        oldSlot.status = 'available';
+        oldSlot.bookedBy = null as any;
+        oldSlot.sessionId = null as any;
+        await oldSlot.save();
+      }
+    } catch (e) {
+      console.error('failed to free old slot', e);
+    }
+
+    // Update session scheduled time/duration to match the new slot
+    session.scheduledAt = targetSlot.startAt;
+    session.durationMinutes = targetSlot.durationMinutes || session.durationMinutes;
+    await session.save();
+
+    // Notify tutor and emit socket events similar to booking flow
+    try {
+      const tutorProfile = await TutorProfile.findById(session.tutorId);
+      if (tutorProfile && tutorProfile.userId) {
+        try { await (await import('../models/Notification')).Notification.create({ userId: tutorProfile.userId as any, type: 'session_rescheduled', data: { sessionId: session._id, scheduledAt: session.scheduledAt } }); } catch (e) { /* ignore */ }
+      }
+      try {
+        const { getIo } = await import('../lib/socket');
+        const io = getIo();
+        if (io) {
+          if (tutorProfile && tutorProfile.userId) {
+            io.to(`user:${String(tutorProfile.userId)}`).emit('session_rescheduled', { sessionId: session._id, scheduledAt: session.scheduledAt });
+          }
+          io.to(`user:${String(user._id)}`).emit('session_rescheduled', { sessionId: session._id, scheduledAt: session.scheduledAt });
+        }
+      } catch (e) { console.error('failed to emit session_rescheduled', e); }
+    } catch (e) { /* ignore notification/socket failures */ }
+
+    return res.json({ ok: true, session, newSlot: targetSlot, freedSlot });
+  } catch (err) {
+    console.error('[slots:switch] Error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
 // student lists their booked slots/sessions
 router.get('/my-bookings', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
