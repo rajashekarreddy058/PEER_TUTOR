@@ -331,6 +331,25 @@ export class MySessions implements OnInit, OnDestroy {
     const role: 'tutor' | 'student' = this.sessionsView === 'tutor' ? 'tutor' : 'student';
     this.sessionsService.list(role).subscribe({ next: (list) => {
       const serverList = list || [];
+      // If server returned empty unexpectedly, try a fallback using explicit byStudent
+      // This handles cases where sessions were created with a different id shape.
+      if ((!serverList || serverList.length === 0) && !pending) {
+        try {
+          const u = this.currentUser;
+          if (u && (u.id || u._id)) {
+            const sid = u.id || u._id || u._id?.$oid || null;
+            if (sid) {
+              console.debug('[my-sessions] primary list empty — trying byStudent fallback for', sid);
+              this.sessionsService.byStudent(String(sid)).subscribe({ next: (fallback: any) => {
+                if (fallback && fallback.length) {
+                  this.sessions = fallback;
+                  return;
+                }
+              }, error: () => {} });
+            }
+          }
+        } catch (e) { /* ignore */ }
+      }
       // Merge pending (if present) into authoritative server list so optimistic
       // inserts are not lost when the server list arrives.
       try {
