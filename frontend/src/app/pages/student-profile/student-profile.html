@@ -3,28 +3,13 @@
     <div class="profile-background"></div>
     <div class="profile-content">
       <div class="profile-picture-container">
-        <img 
-          [src]="getProfilePictureUrl()" 
-          alt="Profile Picture" 
+        <!-- Use a background-image div to avoid showing the image alt text when the image fails to load -->
+        <div
           class="profile-picture"
-        />
-        <div class="profile-picture-overlay" *ngIf="editing">
-          <div class="overlay-buttons">
-            <label for="profile-picture-input" class="upload-btn">
-              📷 Change Photo
-            </label>
-            <button class="remove-btn" (click)="removeProfilePicture()" *ngIf="profile?.profilePicture || previewUrl">
-              🗑️ Remove
-            </button>
-          </div>
-          <input 
-            type="file" 
-            id="profile-picture-input" 
-            accept="image/*" 
-            (change)="onFileSelected($event)"
-            style="display: none;"
-          />
-        </div>
+          [ngStyle]="{'background-image': 'url(' + getProfilePictureUrl() + ')'}"
+          role="img"
+          [attr.aria-label]="profile?.fullName || 'Profile'"
+        ></div>
       </div>
       
       <div class="profile-info">
@@ -36,35 +21,7 @@
           <span class="badge join-date">Joined {{ getJoinDateFormatted() }}</span>
         </div>
         
-        <!-- Profile Picture Actions -->
-        <div class="profile-picture-actions mt-3">
-          <button class="btn btn-outline-primary btn-sm me-2" (click)="triggerFileInput()" [disabled]="loading">
-            <i class="bi bi-camera me-1"></i>
-            Change Photo
-          </button>
-          <button class="btn btn-outline-danger btn-sm me-2" 
-                  (click)="removeProfilePicture()" 
-                  *ngIf="profile?.profilePicture || previewUrl"
-                  [disabled]="loading">
-            <i class="bi bi-trash me-1"></i>
-            Remove Photo
-          </button>
-          <input 
-            type="file" 
-            id="profile-picture-input-main" 
-            accept="image/*" 
-            (change)="onFileSelected($event)"
-            style="display: none;"
-          />
-        </div>
         
-        <!-- Loading indicator -->
-        <div class="mt-2" *ngIf="loading">
-          <div class="spinner-border spinner-border-sm text-primary" role="status">
-            <span class="visually-hidden">Saving...</span>
-          </div>
-          <span class="ms-2 small text-muted">Saving profile picture...</span>
-        </div>
       </div>
     </div>
   </div>

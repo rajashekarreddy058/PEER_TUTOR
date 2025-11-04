@@ -36,8 +36,7 @@ export class StudentProfilePage implements OnInit {
   editing = false;
   loading = false;
   error = '';
-  selectedFile: File | null = null;
-  previewUrl: string | null = null;
+  // profile photo edits are removed; keep display-only
 
   // Form fields for editing
   editFirstName = '';
@@ -71,100 +70,7 @@ export class StudentProfilePage implements OnInit {
       this.editSubjects = [...(this.profile?.subjects || [])];
     }
   }
-
-  onFileSelected(event: any) {
-    const file = event.target.files[0];
-    if (file) {
-      this.selectedFile = file;
-      const reader = new FileReader();
-      reader.onload = (e: any) => {
-        this.previewUrl = e.target.result;
-        // Auto-save the profile picture when selected
-        this.saveProfilePicture();
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-
-  removeProfilePicture() {
-    this.selectedFile = null;
-    this.previewUrl = null;
-    if (this.profile) {
-      this.profile.profilePicture = undefined;
-    }
-  }
-
-  triggerFileInput() {
-    const fileInput = document.getElementById('profile-picture-input-main') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.click();
-    }
-  }
-
-  saveProfilePicture() {
-    if (!this.profile) return;
-
-    this.loading = true;
-    this.error = '';
-
-    // Upload profile picture if selected
-    if (this.selectedFile) {
-      const formData = new FormData();
-      formData.append('profilePicture', this.selectedFile);
-      
-      this.api.postFile(`/users/${this.profile.id}/profile-picture`, formData).subscribe({
-        next: (response: any) => {
-          if (this.profile) {
-            const updatedUser = { ...this.profile, profilePicture: response.profilePicture };
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            this.profile = updatedUser;
-            this.previewUrl = null;
-            this.selectedFile = null;
-            this.loading = false;
-          }
-        },
-        error: (err: any) => {
-          // Fallback to base64 if file upload fails
-          const updateData = {
-            profilePicture: this.previewUrl || this.profile?.profilePicture
-          };
-
-          this.api.put(`/users/${this.profile?.id}`, updateData).subscribe({
-            next: (response: any) => {
-              const updatedUser = { ...this.profile, ...response };
-              localStorage.setItem('user', JSON.stringify(updatedUser));
-              this.profile = updatedUser;
-              this.previewUrl = null;
-              this.selectedFile = null;
-              this.loading = false;
-            },
-            error: (err: any) => {
-              this.error = err?.error?.message || 'Failed to update profile picture';
-              this.loading = false;
-            }
-          });
-        }
-      });
-    } else {
-      // Just update the profile without uploading
-      const updateData = {
-        profilePicture: this.profile.profilePicture
-      };
-
-      this.api.put(`/users/${this.profile.id}`, updateData).subscribe({
-        next: (response: any) => {
-          const updatedUser = { ...this.profile, ...response };
-          localStorage.setItem('user', JSON.stringify(updatedUser));
-          this.profile = updatedUser;
-          this.loading = false;
-        },
-        error: (err: any) => {
-          this.error = err?.error?.message || 'Failed to update profile picture';
-          this.loading = false;
-        }
-      });
-    }
-  }
+  
 
   addSubject() {
     const subject = prompt('Enter a subject:');
@@ -183,14 +89,13 @@ export class StudentProfilePage implements OnInit {
     this.loading = true;
     this.error = '';
 
-    const updateData = {
+    const updateData: any = {
       firstName: this.editFirstName,
       surname: this.editSurname,
       bio: this.editBio,
       grade: this.editGrade,
       educationalInstitute: this.editEducationalInstitute,
-      subjects: this.editSubjects,
-      profilePicture: this.previewUrl || this.profile.profilePicture
+      subjects: this.editSubjects
     };
 
     // Update profile data
@@ -209,34 +114,15 @@ export class StudentProfilePage implements OnInit {
       }
     });
 
-    // Upload profile picture if selected
-    if (this.selectedFile) {
-      const formData = new FormData();
-      formData.append('profilePicture', this.selectedFile);
-      
-      this.api.postFile(`/users/${this.profile.id}/profile-picture`, formData).subscribe({
-        next: (response: any) => {
-          if (this.profile) {
-            this.profile.profilePicture = response.profilePicture;
-            localStorage.setItem('user', JSON.stringify(this.profile));
-          }
-        },
-        error: (err: any) => {
-          console.error('Failed to upload profile picture:', err);
-        }
-      });
-    }
+    // profile picture editing has been removed; no upload is performed here
   }
 
   cancelEdit() {
     this.editing = false;
-    this.selectedFile = null;
-    this.previewUrl = null;
     this.populateEditFields();
   }
 
   getProfilePictureUrl(): string {
-    if (this.previewUrl) return this.previewUrl;
     if (this.profile?.profilePicture) return this.profile.profilePicture;
     return 'https://via.placeholder.com/150/4f46e5/ffffff?text=' + (this.profile?.firstName?.charAt(0) || 'U');
   }
