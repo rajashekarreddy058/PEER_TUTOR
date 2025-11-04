@@ -127,6 +127,29 @@ router.post('/:slotId/disable', requireAuth, async (req: AuthRequest, res: Respo
   } catch (err) { console.error(err); return res.status(500).json({ message: 'Server error' }); }
 });
 
+// Tutor enable a previously disabled slot
+router.post('/:slotId/enable', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.userId!;
+    const user = await User.findById(uid);
+    if (!user) return res.status(401).json({ message: 'Unauthorized' });
+    if (!user.isTutor) return res.status(403).json({ message: 'Only tutors' });
+    const { slotId } = req.params;
+    const tutor = await TutorProfile.findOne({ userId: user._id });
+    if (!tutor) return res.status(404).json({ message: 'Tutor profile not found' });
+    const slot = await Slot.findById(slotId);
+    if (!slot) return res.status(404).json({ message: 'Slot not found' });
+    if (String(slot.tutorId) !== String(tutor._id)) return res.status(403).json({ message: 'Not your slot' });
+    // only allow enabling if currently disabled and not expired or booked
+    if (slot.status !== 'disabled') return res.status(400).json({ message: 'Slot is not disabled' });
+    const now = new Date();
+    if (slot.endAt && slot.endAt.getTime() <= now.getTime()) return res.status(400).json({ message: 'Cannot enable an expired slot' });
+    slot.status = 'available';
+    await slot.save();
+    return res.json({ ok: true, slot });
+  } catch (err) { console.error(err); return res.status(500).json({ message: 'Server error' }); }
+});
+
 // Student books a slot -> create a Session and mark slot as booked
 router.post('/:slotId/book', requireAuth, async (req: AuthRequest, res: Response) => {
   try {

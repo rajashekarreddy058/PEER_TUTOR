@@ -51,6 +51,14 @@ export async function leaveFeedback(req: AuthRequest, res: Response) {
   const session = await Session.findById(sessionId);
   if (!session) return res.status(404).json({ message: 'Session not found' });
 
+  // Do not allow leaving feedback for cancelled sessions
+  try {
+    const sStatus = (session as any).status;
+    if (sStatus === 'cancelled' || sStatus === 'canceled') {
+      return res.status(400).json({ message: 'Cannot leave feedback for a cancelled session' });
+    }
+  } catch (e) {}
+
   // session.studentId may be an ObjectId or populated object
   const studentId = session.studentId && (session.studentId as any)._id ? String((session.studentId as any)._id) : String(session.studentId);
   if (String(userId) !== String(studentId)) return res.status(403).json({ message: 'Only the student can leave feedback' });

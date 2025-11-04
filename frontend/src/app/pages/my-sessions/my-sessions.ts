@@ -469,6 +469,14 @@ export class MySessions implements OnInit, OnDestroy {
       this.toast.push('Tutors cannot leave feedback for students', 'info');
       return;
     }
+    // Prevent leaving feedback for cancelled sessions
+    try {
+      const st = s && (s.status || s.state || s.statusText);
+      if (st === 'cancelled' || st === 'canceled') {
+        this.toast.push('Cannot leave feedback for a cancelled session', 'info');
+        return;
+      }
+    } catch (e) {}
     // Prevent opening feedback for sessions already rated
     try {
       if (s && s.hasFeedback) {

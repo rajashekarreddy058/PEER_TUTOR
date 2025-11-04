@@ -47,7 +47,8 @@ import { ToastService } from '../../services/toast.service';
       <span *ngIf="s.status === 'available'" class="badge bg-success ms-2">Available</span>
     </div>
     <div>
-      <button class="btn btn-sm btn-outline-secondary me-2" (click)="disable(s)">Disable</button>
+      <button *ngIf="s.status !== 'disabled'" class="btn btn-sm btn-outline-secondary me-2" (click)="disable(s)">Disable</button>
+      <button *ngIf="s.status === 'disabled'" class="btn btn-sm btn-outline-success me-2" (click)="enable(s)">Enable</button>
       <button class="btn btn-sm btn-danger" [disabled]="s.status === 'booked'" (click)="del(s)">Delete</button>
     </div>
   </div>
@@ -221,6 +222,8 @@ export class TutorSlots implements OnInit {
   }
 
   disable(s: any) { this.svc.disableSlot(s._id).subscribe({ next: () => { this.toast.push('Disabled', 'info'); this.load(); }, error: () => this.toast.push('Failed to disable','error') }); }
+
+  enable(s: any) { this.svc.enableSlot(s._id).subscribe({ next: () => { this.toast.push('Enabled', 'success'); this.load(); }, error: (err:any) => this.toast.push(err?.error?.message || 'Failed to enable','error') }); }
 
   del(s: any) { this.svc.deleteSlot(s._id).subscribe({ next: () => { this.toast.push('Deleted', 'info'); this.load(); }, error: (err:any) => this.toast.push(err?.error?.message || 'Failed to delete','error') }); }
 }
